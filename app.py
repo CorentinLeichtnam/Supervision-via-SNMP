@@ -87,5 +87,47 @@ def monitor_equipment(id):
         "uptime": sys_uptime if sys_uptime else "Unknown"
     })
 
+@app.route("/delete/<int:id>", methods=["POST"])
+def delete_equipment(id):
+    """
+    Supprime un équipement de la liste.
+    """
+    equipments = load_equipments()
+    equipment = next((e for e in equipments if e["id"] == id), None)
+
+    if not equipment:
+        return jsonify({"error": "Equipment not found"}), 404
+
+    # Retirer l'équipement de la liste
+    equipments = [e for e in equipments if e["id"] != id]
+    save_equipments(equipments)
+
+    return jsonify({"message": "Equipment deleted successfully"}), 200
+
+@app.route("/update/<int:id>", methods=["POST"])
+def update_equipment(id):
+    """
+    Met à jour un équipement existant.
+    """
+    equipments = load_equipments()
+    equipment = next((e for e in equipments if e["id"] == id), None)
+
+    if not equipment:
+        return jsonify({"error": "Equipment not found"}), 404
+
+    # Récupérer les nouvelles données du formulaire
+    name = request.form.get("name")
+    ip = request.form.get("ip")
+    description = request.form.get("description")
+
+    # Mettre à jour les informations de l'équipement
+    equipment["name"] = name
+    equipment["ip"] = ip
+    equipment["description"] = description
+
+    save_equipments(equipments)
+
+    return jsonify({"message": "Equipment updated successfully"}), 200
+
 if __name__ == "__main__":
     app.run(debug=True)
