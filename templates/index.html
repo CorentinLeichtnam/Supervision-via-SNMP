@@ -27,14 +27,31 @@
         {% for equipment in equipments %}
         <li>
             <strong>{{ equipment.name }}</strong> ({{ equipment.ip }}) - {{ equipment.description }}
+            <button onclick="editEquipment({{ equipment.id }}, '{{ equipment.name | safe }}', '{{ equipment.ip | safe }}', '{{ equipment.description | safe }}')">Edit</button>
+            <button onclick="deleteEquipment({{ equipment.id }})">Delete</button>
         </li>
         {% endfor %}
     </ul>
 
+    <!-- Formulaire de modification caché -->
+    <form id="edit-equipment-form" style="display:none;">
+        <input type="hidden" id="edit-id" name="id">
+        <label for="edit-name">Name:</label>
+        <input type="text" id="edit-name" name="name" required>
+        <br>
+        <label for="edit-ip">IP Address:</label>
+        <input type="text" id="edit-ip" name="ip" required>
+        <br>
+        <label for="edit-description">Description:</label>
+        <input type="text" id="edit-description" name="description">
+        <br>
+        <button type="submit">Save Changes</button>
+        <button type="button" onclick="cancelEdit()">Cancel</button>
+    </form>
+
     <script>
         document.getElementById("add-equipment-form").addEventListener("submit", async (e) => {
             e.preventDefault();
-
             const formData = new FormData(e.target);
             const response = await fetch("/add", {
                 method: "POST",
@@ -47,6 +64,52 @@
                 alert("Error adding equipment");
             }
         });
+
+        function editEquipment(id, name, ip, description) {
+            document.getElementById("edit-equipment-form").style.display = "block";
+            document.getElementById("edit-id").value = id;
+            document.getElementById("edit-name").value = name;
+            document.getElementById("edit-ip").value = ip;
+            document.getElementById("edit-description").value = description;
+        }
+
+        document.getElementById("edit-equipment-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const id = document.getElementById("edit-id").value;
+            const formData = new FormData(e.target);
+
+            const response = await fetch(`/update/${id}`, {
+                method: "POST",
+                body: formData
+            });
+
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert("Error updating equipment");
+            }
+        });
+
+        function cancelEdit() {
+            document.getElementById("edit-equipment-form").style.display = "none";
+        }
+
+        async function deleteEquipment(id) {
+            if (!id) {
+                alert("Invalid equipment ID");
+                return;
+            }
+
+            const response = await fetch(`/delete/${id}`, {
+                method: "POST"
+            });
+
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert("Error deleting equipment");
+            }
+        }
     </script>
 </body>
 </html>
