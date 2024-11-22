@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 import json
 import os
+from snmp_monitor import SNMPMonitor  # Importer le module SNMPMonitor
 
 app = Flask(__name__)
 
@@ -58,31 +59,33 @@ def add_equipment():
 
     return jsonify({"message": "Equipment added successfully"}), 200
 
-@app.route("/update/<int:id>", methods=["POST"])
-def update_equipment(id):
+@app.route("/monitor/<int:id>", methods=["GET"])
+def monitor_equipment(id):
+    """
+    Surveille un équipement via SNMP.
+    """
     equipments = load_equipments()
-    for equipment in equipments:
-        if equipment["id"] == id:
-            equipment["name"] = request.form.get("name", equipment["name"])
-            equipment["ip"] = request.form.get("ip", equipment["ip"])
-            equipment["description"] = request.form.get("description", equipment["description"])
-            save_equipments(equipments)
-            return jsonify({"message": "Equipment updated successfully"}), 200
-    return jsonify({"error": "Equipment not found"}), 404
+    equipment = next((e for e in equipments if e["id"] == id), None)
 
-@app.route("/delete/<int:id>", methods=["POST"])
-def delete_equipment(id):
-    equipments = load_equipments()
-    
-    # Vérifiez si l'équipement avec l'ID donné existe
-    if not any(equipment["id"] == id for equipment in equipments):
+    if not equipment:
         return jsonify({"error": "Equipment not found"}), 404
 
-    # Supprimez l'équipement correspondant
-    equipments = [equipment for equipment in equipments if equipment["id"] != id]
-    save_equipments(equipments)
-    
-    return jsonify({"message": "Equipment deleted successfully"}), 200
+    # Initialisez une session SNMPMonitor
+    ip = equipment["ip"]
+    community = "public"  # Personnalisez si besoin
+    monitor = SNMPMonitor(ip, community)
+
+    # Récupérez des données SNMP
+    sys_name_oid = "1.3.6.1.2.1.1.5.0"  # Nom de l'équipement (sysName)
+    sys_uptime_oid = "1.3.6.1.2.1.1.3.0"  # Temps de fonctionnement (sysUpTime)
+
+    sys_name = monitor.get_snmp_data(sys_name_oid)
+    sys_uptime = monitor.get_snmp_data(sys_uptime_oid)
+
+    return jsonify({
+        "name": sys_name if sys_name else "Unknown",
+        "uptime": sys_uptime if sys_uptime else "Unknown"
+    })
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -10,6 +10,7 @@
     <h1>Equipment Management</h1>
     
     <form id="add-equipment-form">
+        <h2>Add Equipment</h2>
         <label for="name">Name:</label>
         <input type="text" id="name" name="name" required>
         <br>
@@ -27,14 +28,21 @@
         {% for equipment in equipments %}
         <li>
             <strong>{{ equipment.name }}</strong> ({{ equipment.ip }}) - {{ equipment.description }}
+            <button onclick="monitorEquipment({{ equipment.id }})">Monitor</button>
             <button onclick="editEquipment({{ equipment.id }}, '{{ equipment.name | safe }}', '{{ equipment.ip | safe }}', '{{ equipment.description | safe }}')">Edit</button>
             <button onclick="deleteEquipment({{ equipment.id }})">Delete</button>
         </li>
         {% endfor %}
     </ul>
 
+    <div id="monitor-result" style="display:none;">
+        <h2>Monitor Result</h2>
+        <p id="monitor-output"></p>
+    </div>
+
     <!-- Formulaire de modification caché -->
     <form id="edit-equipment-form" style="display:none;">
+        <h2>Edit Equipment</h2>
         <input type="hidden" id="edit-id" name="id">
         <label for="edit-name">Name:</label>
         <input type="text" id="edit-name" name="name" required>
@@ -50,6 +58,7 @@
     </form>
 
     <script>
+        // Ajouter un nouvel équipement
         document.getElementById("add-equipment-form").addEventListener("submit", async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
@@ -65,14 +74,32 @@
             }
         });
 
+        // Surveiller un équipement
+        async function monitorEquipment(id) {
+            const response = await fetch(`/monitor/${id}`);
+            const resultDiv = document.getElementById("monitor-result");
+            const output = document.getElementById("monitor-output");
+
+            if (response.ok) {
+                const data = await response.json();
+                resultDiv.style.display = "block";
+                output.innerText = `Equipment: ${data.name}\nUptime: ${data.uptime}`;
+            } else {
+                alert("Failed to monitor equipment.");
+            }
+        }
+
+        // Modifier un équipement
         function editEquipment(id, name, ip, description) {
-            document.getElementById("edit-equipment-form").style.display = "block";
+            const editForm = document.getElementById("edit-equipment-form");
+            editForm.style.display = "block";
             document.getElementById("edit-id").value = id;
             document.getElementById("edit-name").value = name;
             document.getElementById("edit-ip").value = ip;
             document.getElementById("edit-description").value = description;
         }
 
+        // Enregistrer les modifications d'un équipement
         document.getElementById("edit-equipment-form").addEventListener("submit", async (e) => {
             e.preventDefault();
             const id = document.getElementById("edit-id").value;
@@ -90,10 +117,13 @@
             }
         });
 
+        // Annuler la modification d'un équipement
         function cancelEdit() {
-            document.getElementById("edit-equipment-form").style.display = "none";
+            const editForm = document.getElementById("edit-equipment-form");
+            editForm.style.display = "none";
         }
 
+        // Supprimer un équipement
         async function deleteEquipment(id) {
             if (!id) {
                 alert("Invalid equipment ID");
